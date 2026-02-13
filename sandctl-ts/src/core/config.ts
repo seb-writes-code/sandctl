@@ -16,7 +16,7 @@ const providerConfigSchema = z.object({
 const configSchema = z.object({
   default_provider: z.string().default("hetzner"),
   ssh_public_key: z.string().optional(),
-  providers: z.record(providerConfigSchema).default({}),
+  providers: z.record(z.string(), providerConfigSchema).default({}),
   ssh_key_source: z.enum(["file", "agent"]).optional(),
   ssh_public_key_inline: z.string().optional(),
   ssh_key_fingerprint: z.string().optional(),
