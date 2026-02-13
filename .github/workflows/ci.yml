@@ -54,6 +54,36 @@ jobs:
       - name: Run tests
         run: go test -v -race ./...
 
+
+  test-typescript:
+    name: Test TypeScript (Bun)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        working-directory: ./sandctl-ts
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck
+        working-directory: ./sandctl-ts
+        run: bun run typecheck
+
+      - name: Run tests
+        working-directory: ./sandctl-ts
+        run: bun test
+
+      - name: Build
+        working-directory: ./sandctl-ts
+        run: bun run build
   e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
