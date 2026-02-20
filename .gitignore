@@ -1,24 +1,16 @@
 # Binaries
-*.exe
-*.exe~
-*.dll
-*.so
-*.dylib
-build/
+sandctl
+sandctl-darwin-arm64
+sandctl-darwin-x64
+sandctl-linux-x64
+sandctl-linux-arm64
 dist/
 
-# Test binary, built with `go test -c`
-*.test
+# TypeScript build artifacts
+*.tsbuildinfo
 
-# Output of the go coverage tool
-*.out
-coverage.html
-
-# Go workspace file
-go.work
-
-# Dependency directories
-vendor/
+# Node/Bun dependencies
+node_modules/
 
 # IDE and editor files
 .idea/
@@ -42,3 +34,7 @@ Thumbs.db
 # Debug files
 *.log
 debug/
+
+# Coverage reports
+coverage/
+*.lcov

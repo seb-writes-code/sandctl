@@ -1,0 +1,29 @@
+{
+  "name": "sandctl",
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "build": "bun build src/index.ts --compile --outfile sandctl",
+    "build-all": "scripts/build-all.sh",
+    "test": "bun test",
+    "test:unit": "bun test tests/unit/",
+    "test:e2e": "bun test tests/e2e/",
+    "lint": "biome check src/ tests/",
+    "fmt": "biome format --write src/ tests/",
+    "check-fmt": "biome format src/ tests/"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^7.5.2",
+    "chalk": "^5.4.1",
+    "commander": "^13.1.0",
+    "ora": "^8.2.0",
+    "ssh2": "^1.16.0",
+    "yaml": "^2.8.0"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^22.13.9",
+    "@types/ssh2": "^1.15.4",
+    "typescript": "^5.8.2"
+  }
+}

@@ -1,0 +1,84 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Run linter
+        run: bun run lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Run tests
+        run: bun test
+
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Build binary
+        run: make build
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sandctl-linux-x64
+          path: sandctl
+
+  e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    if: ${{ secrets.HETZNER_API_TOKEN != '' }}
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+      - name: Install dependencies
+        run: bun install
+      - name: Generate SSH key
+        run: |
+          ssh-keygen -t ed25519 -C "sandctl-ci@github" -f ~/.ssh/id_ed25519 -N ""
+          echo "SSH_PUBLIC_KEY_PATH=$HOME/.ssh/id_ed25519.pub" >> "$GITHUB_ENV"
+      - name: Build binary
+        run: make build
+      - name: Run E2E tests
+        env:
+          HETZNER_API_TOKEN: ${{ secrets.HETZNER_API_TOKEN }}
+          SSH_PUBLIC_KEY_PATH: ${{ env.SSH_PUBLIC_KEY_PATH }}
+        run: bun test tests/e2e/
