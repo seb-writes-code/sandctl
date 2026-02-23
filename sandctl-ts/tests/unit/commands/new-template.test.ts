@@ -4,6 +4,7 @@ import { runNew } from "@/commands/new";
 import type { Provider, SSHKeyManager } from "@/provider/interface";
 import type { VM } from "@/provider/types";
 import { TemplateNotFoundError } from "@/template/store";
+import type { TemplateStoreLike } from "@/template/types";
 import { baseProviderConfig } from "../../support/fixtures";
 
 type ProviderLike = Provider & SSHKeyManager;
@@ -53,7 +54,7 @@ describe("commands/new --template", () => {
 						normalized: "my-api",
 						script: "echo templated\n",
 					}),
-				},
+				} as TemplateStoreLike,
 				createSSHClient: (options) => {
 					events.push(`client.host:${options.host}`);
 					return {
@@ -114,7 +115,7 @@ describe("commands/new --template", () => {
 						normalized: "bob-s-app",
 						script: "echo templated\n",
 					}),
-				},
+				} as TemplateStoreLike,
 				createSSHClient: () => ({
 					connect: async () => {},
 					close: async () => {},
@@ -164,7 +165,7 @@ describe("commands/new --template", () => {
 						getInitScript: async () => {
 							throw new TemplateNotFoundError("Ghost");
 						},
-					},
+					} as TemplateStoreLike,
 				},
 			),
 		).rejects.toThrow(

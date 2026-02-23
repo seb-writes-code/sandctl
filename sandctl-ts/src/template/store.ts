@@ -114,7 +114,7 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async list(): Promise<TemplateConfig[]> {
-		let entries: Awaited<ReturnType<typeof readdir>>;
+		let entries: { isDirectory(): boolean; name: string }[];
 		try {
 			entries = await readdir(this.basePath, { withFileTypes: true });
 		} catch (error) {
