@@ -6,6 +6,7 @@ import { registerExecCommand } from "@/commands/exec";
 import { registerInitCommand } from "@/commands/init";
 import { registerListCommand } from "@/commands/list";
 import { registerNewCommand } from "@/commands/new";
+import { registerTemplateCommand } from "@/commands/template";
 import { registerVersionCommand } from "@/commands/version";
 
 const program = new Command()
@@ -21,6 +22,7 @@ program.addCommand(registerListCommand());
 program.addCommand(registerExecCommand());
 program.addCommand(registerConsoleCommand());
 program.addCommand(registerDestroyCommand());
+program.addCommand(registerTemplateCommand());
 
 if (import.meta.main) {
 	program.parseAsync().catch((error: unknown) => {
