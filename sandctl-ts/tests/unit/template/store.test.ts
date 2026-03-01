@@ -174,6 +174,36 @@ describe("template/store", () => {
 		);
 	});
 
+	test("get throws when config.yaml is missing required fields", async () => {
+		// Write a config.yaml that is valid YAML but missing required fields
+		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
+		const templateDir = join(root, "partial");
+		await mkdir(templateDir, { recursive: true });
+		await writeFile(
+			join(templateDir, "config.yaml"),
+			"some_random_key: value\n",
+		);
+
+		const store = new TemplateStore(root);
+		await expect(store.get("partial")).rejects.toThrow(
+			/invalid|missing|required/i,
+		);
+	});
+
+	test("list skips entries with missing required fields and throws", async () => {
+		// A config.yaml missing required fields should cause list() to throw
+		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
+		const templateDir = join(root, "partial");
+		await mkdir(templateDir, { recursive: true });
+		await writeFile(
+			join(templateDir, "config.yaml"),
+			"some_random_key: value\n",
+		);
+
+		const store = new TemplateStore(root);
+		await expect(store.list()).rejects.toThrow(/invalid|missing|required/i);
+	});
+
 	test("add rejects template names containing path traversal sequences", async () => {
 		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
 		const store = new TemplateStore(root);

@@ -21,6 +21,22 @@ import type {
 const INIT_SCRIPT_NAME = "init.sh";
 const CONFIG_NAME = "config.yaml";
 
+function parseAndValidateConfig(data: string, source: string): TemplateConfig {
+	const parsed = YAML.parse(data);
+	if (
+		!parsed ||
+		typeof parsed !== "object" ||
+		typeof parsed.template !== "string" ||
+		typeof parsed.original_name !== "string" ||
+		typeof parsed.created_at !== "string"
+	) {
+		throw new Error(
+			`invalid template config at ${source}: missing required fields (template, original_name, created_at)`,
+		);
+	}
+	return parsed as TemplateConfig;
+}
+
 function assertNoPathTraversal(name: string): void {
 	if (name.includes("..") || name.includes("/") || name.includes("\\")) {
 		throw new Error(
@@ -114,7 +130,7 @@ export class TemplateStore implements TemplateStoreLike {
 		const configPath = join(this.basePath, normalized, CONFIG_NAME);
 		try {
 			const data = await readFile(configPath, "utf8");
-			return YAML.parse(data) as TemplateConfig;
+			return parseAndValidateConfig(data, configPath);
 		} catch (error) {
 			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
 				throw new TemplateNotFoundError(name);
@@ -142,7 +158,12 @@ export class TemplateStore implements TemplateStoreLike {
 					join(this.basePath, entry.name, CONFIG_NAME),
 					"utf8",
 				);
-				configs.push(YAML.parse(data) as TemplateConfig);
+				configs.push(
+					parseAndValidateConfig(
+						data,
+						join(this.basePath, entry.name, CONFIG_NAME),
+					),
+				);
 			} catch (error) {
 				if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
 				throw error;
