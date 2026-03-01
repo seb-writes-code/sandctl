@@ -21,12 +21,6 @@ export async function runTemplateRemove(
 ): Promise<void> {
 	const { log, confirm: askConfirm } = { ...defaultDependencies, ...deps };
 
-	if (!(await store.exists(name))) {
-		throw new Error(
-			`template '${name}' not found. Use 'sandctl template list' to see available templates`,
-		);
-	}
-
 	if (!options.force) {
 		const accepted = await askConfirm(`Delete template '${name}'?`);
 		if (!accepted) {
@@ -39,7 +33,9 @@ export async function runTemplateRemove(
 		await store.remove(name);
 	} catch (error) {
 		if (error instanceof TemplateNotFoundError) {
-			throw new Error(`template '${name}' not found`);
+			throw new Error(
+				`template '${name}' not found. Use 'sandctl template list' to see available templates`,
+			);
 		}
 		throw error;
 	}

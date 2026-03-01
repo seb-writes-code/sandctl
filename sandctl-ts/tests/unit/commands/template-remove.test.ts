@@ -3,7 +3,8 @@ import { mkdtemp } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { runTemplateRemove } from "@/commands/template-remove";
-import { TemplateStore } from "@/template/store";
+import { TemplateNotFoundError, TemplateStore } from "@/template/store";
+import type { TemplateStoreLike } from "@/template/types";
 
 describe("template remove", () => {
 	test("removes template with --force", async () => {
@@ -61,5 +62,31 @@ describe("template remove", () => {
 				confirm: async () => true,
 			}),
 		).rejects.toThrow(/not found/);
+	});
+
+	test("does not call exists() before remove() to avoid TOCTOU race condition", async () => {
+		// The safe approach is to call remove() directly and let it handle
+		// the not-found case — rather than exists() then remove() (TOCTOU).
+		// This test verifies exists() is never called during a remove operation.
+		const existsCalled = { count: 0 };
+		const mockStore: TemplateStoreLike = {
+			exists: async () => {
+				existsCalled.count++;
+				return true;
+			},
+			remove: async () => {},
+			add: async () => ({ template: "", original_name: "", created_at: "" }),
+			get: async () => ({ template: "", original_name: "", created_at: "" }),
+			list: async () => [],
+			getInitScript: async () => ({ name: "", normalized: "", script: "" }),
+			getInitScriptPath: async () => "",
+		};
+
+		await runTemplateRemove("Ghost", { force: true }, mockStore, {
+			log: () => {},
+			confirm: async () => true,
+		});
+
+		expect(existsCalled.count).toBe(0);
 	});
 });
