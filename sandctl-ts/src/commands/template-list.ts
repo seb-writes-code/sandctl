@@ -32,13 +32,14 @@ export async function runTemplateList(
 		return;
 	}
 
-	log("NAME                 CREATED");
+	const COL_WIDTH = 20;
+	log(`${"NAME".padEnd(COL_WIDTH)} CREATED`);
 	for (const config of configs) {
-		const cols = [
-			config.original_name.padEnd(20),
-			formatCreatedAt(config.created_at),
-		];
-		log(cols.join(" "));
+		const name =
+			config.original_name.length > COL_WIDTH
+				? `${config.original_name.substring(0, COL_WIDTH - 1)}…`
+				: config.original_name.padEnd(COL_WIDTH);
+		log(`${name} ${formatCreatedAt(config.created_at)}`);
 	}
 }
 

@@ -33,6 +33,25 @@ describe("template list", () => {
 		);
 	});
 
+	test("long template names do not overflow the 20-char name column", async () => {
+		const root = await mkdtemp(join(tmpdir(), "sandctl-tpl-list-"));
+		const store = new TemplateStore(root);
+		// "Averylongnameexceed" = 19 chars, adding "stwenty" makes it 26 chars total
+		// with no space — so char at index 20 would be a letter if not truncated
+		await store.add("Averylongnameexceedstwenty");
+
+		const output: string[] = [];
+		await runTemplateList(store, { log: (msg: string) => output.push(msg) });
+
+		const dataRow = output.find((m) => m.includes("Averylongname"));
+		expect(dataRow).toBeTruthy();
+
+		// The name column is 20 chars wide; position 20 should be a space separator
+		// not a letter continuing the overflowing name.
+		const charAt20 = dataRow![20];
+		expect(charAt20).toBe(" ");
+	});
+
 	test("handles invalid created_at date without crashing", async () => {
 		// Write a config.yaml with a bogus date to simulate corrupt data
 		const root = await mkdtemp(join(tmpdir(), "sandctl-tpl-list-"));
