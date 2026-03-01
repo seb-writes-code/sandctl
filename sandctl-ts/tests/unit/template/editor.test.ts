@@ -16,7 +16,8 @@ describe("utils/editor parseEditorCommand", () => {
 				"'/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code' -w",
 			),
 		).toEqual({
-			command: "/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
+			command:
+				"/Applications/Visual Studio Code.app/Contents/Resources/app/bin/code",
 			args: ["-w"],
 		});
 	});
