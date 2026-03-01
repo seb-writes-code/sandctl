@@ -174,6 +174,28 @@ describe("template/store", () => {
 		);
 	});
 
+	test("add rejects template names containing path traversal sequences", async () => {
+		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
+		const store = new TemplateStore(root);
+
+		await expect(store.add("../etc/passwd")).rejects.toThrow(
+			/traversal|invalid/i,
+		);
+		await expect(store.add("foo/../../bar")).rejects.toThrow(
+			/traversal|invalid/i,
+		);
+		await expect(store.add("..")).rejects.toThrow(/traversal|invalid/i);
+	});
+
+	test("get rejects template names containing path traversal sequences", async () => {
+		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
+		const store = new TemplateStore(root);
+
+		await expect(store.get("../etc/passwd")).rejects.toThrow(
+			/traversal|invalid/i,
+		);
+	});
+
 	test("list propagates non-ENOENT errors from config reads", async () => {
 		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
 		const store = new TemplateStore(root);

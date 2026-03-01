@@ -21,6 +21,14 @@ import type {
 const INIT_SCRIPT_NAME = "init.sh";
 const CONFIG_NAME = "config.yaml";
 
+function assertNoPathTraversal(name: string): void {
+	if (name.includes("..") || name.includes("/") || name.includes("\\")) {
+		throw new Error(
+			`invalid template name '${name}': path traversal sequences are not allowed`,
+		);
+	}
+}
+
 export function defaultTemplatesPath(): string {
 	return join(homedir(), ".sandctl", "templates");
 }
@@ -61,6 +69,7 @@ export class TemplateStore implements TemplateStoreLike {
 	constructor(private readonly basePath = defaultTemplatesPath()) {}
 
 	async add(name: string): Promise<TemplateConfig> {
+		assertNoPathTraversal(name);
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) {
 			throw new Error("template name is required");
@@ -96,6 +105,7 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async get(name: string): Promise<TemplateConfig> {
+		assertNoPathTraversal(name);
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) {
 			throw new TemplateNotFoundError(name);
@@ -144,6 +154,7 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async remove(name: string): Promise<void> {
+		assertNoPathTraversal(name);
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) {
 			throw new TemplateNotFoundError(name);
@@ -160,6 +171,11 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async exists(name: string): Promise<boolean> {
+		try {
+			assertNoPathTraversal(name);
+		} catch {
+			return false;
+		}
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) return false;
 
@@ -172,6 +188,7 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async getInitScript(name: string): Promise<TemplateInitScript> {
+		assertNoPathTraversal(name);
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) {
 			throw new TemplateNotFoundError(name);
@@ -190,6 +207,7 @@ export class TemplateStore implements TemplateStoreLike {
 	}
 
 	async getInitScriptPath(name: string): Promise<string> {
+		assertNoPathTraversal(name);
 		const normalized = normalizeTemplateName(name);
 		if (!normalized) {
 			throw new TemplateNotFoundError(name);
