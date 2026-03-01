@@ -133,8 +133,9 @@ export class TemplateStore implements TemplateStoreLike {
 					"utf8",
 				);
 				configs.push(YAML.parse(data) as TemplateConfig);
-			} catch {
-				// Skip invalid entries
+			} catch (error) {
+				if ((error as NodeJS.ErrnoException).code === "ENOENT") continue;
+				throw error;
 			}
 		}
 

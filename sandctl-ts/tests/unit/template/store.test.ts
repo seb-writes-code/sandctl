@@ -173,4 +173,17 @@ describe("template/store", () => {
 			TemplateNotFoundError,
 		);
 	});
+
+	test("list propagates non-ENOENT errors from config reads", async () => {
+		const root = await mkdtemp(join(tmpdir(), "sandctl-template-store-test-"));
+		const store = new TemplateStore(root);
+
+		// Create a template dir but make config.yaml a directory (not a file)
+		// so readFile throws EISDIR — a real I/O error, not just missing file
+		const templateDir = join(root, "bad-template");
+		await mkdir(templateDir, { recursive: true });
+		await mkdir(join(templateDir, "config.yaml"), { recursive: true });
+
+		await expect(store.list()).rejects.toThrow();
+	});
 });
