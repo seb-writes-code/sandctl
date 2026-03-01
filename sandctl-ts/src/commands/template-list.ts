@@ -12,7 +12,9 @@ const defaultDependencies: Dependencies = {
 };
 
 function formatCreatedAt(iso: string): string {
-	return DateTime.fromISO(iso).toLocal().toFormat("yyyy-MM-dd HH:mm:ss");
+	const dt = DateTime.fromISO(iso);
+	if (!dt.isValid) return "(invalid date)";
+	return dt.toLocal().toFormat("yyyy-MM-dd HH:mm:ss");
 }
 
 export async function runTemplateList(
