@@ -19,7 +19,10 @@ export async function runTemplateShow(
 
 	try {
 		const initScript = await store.getInitScript(name);
-		write(initScript.script);
+		const content = initScript.script.endsWith("\n")
+			? initScript.script
+			: `${initScript.script}\n`;
+		write(content);
 	} catch (error) {
 		if (error instanceof TemplateNotFoundError) {
 			throw new Error(
