@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { Command } from "commander";
 import { createSpinner } from "nanospinner";
 import {
@@ -196,6 +197,11 @@ async function defaultWaitForCloudInit(
 	);
 }
 
+export function sshKeyName(publicKey: string): string {
+	const hex = createHash("md5").update(publicKey).digest("hex");
+	return `sandctl-${hex.slice(0, 8)}`;
+}
+
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
@@ -266,7 +272,7 @@ export async function runNew(
 
 	const publicKey = await dependencies.getPublicKey(config);
 	const sshKeyID = await provider.ensureSSHKey(
-		`sandctl-${sessionID}`,
+		sshKeyName(publicKey),
 		publicKey,
 	);
 
