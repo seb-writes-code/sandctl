@@ -1,3 +1,4 @@
+import { isatty } from "node:tty";
 import { Command } from "commander";
 import { createSpinner } from "nanospinner";
 import {
@@ -21,6 +22,7 @@ import {
 	type SSHClientLike,
 	type SSHClientOptions,
 } from "@/ssh/client";
+import { openConsole } from "@/ssh/console";
 import { type ExecResult, execWithStreams } from "@/ssh/exec";
 import { TemplateNotFoundError, TemplateStore } from "@/template/store";
 import type { TemplateInitScript, TemplateStoreLike } from "@/template/types";
@@ -35,6 +37,7 @@ interface NewOptions {
 	image?: string;
 	timeout?: string;
 	template?: string;
+	noConsole?: boolean;
 }
 
 interface NewCommandSpinner {
@@ -46,6 +49,11 @@ interface NewCommandDependencies {
 	runNew: (options: NewOptions, configPath?: string) => Promise<Session>;
 	createSpinner: (text: string) => NewCommandSpinner;
 	log: (message: string) => void;
+	loadConfig: (configPath?: string) => Promise<Config>;
+	createSSHClient: (options: SSHClientOptions) => SSHRuntimeClient;
+	openRemoteConsole: (client: SSHClientLike) => Promise<void>;
+	isInteractive: () => boolean;
+	warn: (message: string) => void;
 }
 
 interface SessionStoreLike {
@@ -108,6 +116,13 @@ const defaultNewCommandDependencies: NewCommandDependencies = {
 	},
 	log: (message: string) => {
 		console.log(message);
+	},
+	loadConfig: load,
+	createSSHClient: (options) => new SSHClient(options),
+	openRemoteConsole: openConsole,
+	isInteractive: () => isatty(0),
+	warn: (message: string) => {
+		console.warn(message);
 	},
 };
 
@@ -296,15 +311,43 @@ export async function runNewCommand(
 	};
 
 	const spinner = dependencies.createSpinner("Provisioning VM...");
+	let session: Session;
 	try {
-		const session = await dependencies.runNew(options, configPath);
+		session = await dependencies.runNew(options, configPath);
 		spinner.succeed(`Created VM '${session.id}'.`);
 		dependencies.log(`VM name: ${session.id}`);
-		return session;
 	} catch (error) {
 		spinner.fail("Failed to provision VM.");
 		throw error;
 	}
+
+	const shouldConsole =
+		!options.noConsole && dependencies.isInteractive() && session.ip_address;
+
+	if (shouldConsole) {
+		dependencies.log("Connecting to console...");
+		try {
+			const config = await dependencies.loadConfig(configPath);
+			const client = dependencies.createSSHClient(
+				buildSSHOptions(config, session.ip_address),
+			);
+			await withSSHClient(client, async (c) => {
+				await dependencies.openRemoteConsole(c);
+			});
+		} catch (error) {
+			dependencies.warn(
+				`Warning: Failed to connect to console: ${messageFromError(error)}`,
+			);
+			dependencies.log(
+				`Session was created successfully. Use 'sandctl console ${session.id}' to connect manually.`,
+			);
+		}
+	} else if (!options.noConsole) {
+		dependencies.log(`Use 'sandctl console ${session.id}' to connect.`);
+		dependencies.log(`Use 'sandctl destroy ${session.id}' when done.`);
+	}
+
+	return session;
 }
 
 export function registerNewCommand(): Command {
@@ -316,6 +359,10 @@ export function registerNewCommand(): Command {
 		.option("--server-type <serverType>", "Server type override")
 		.option("--image <image>", "Image override")
 		.option("-t, --timeout <timeout>", "Wait timeout (for example: 5m, 10m)")
+		.option(
+			"--no-console",
+			"Skip automatic console connection after provisioning",
+		)
 		.action(async (options: NewOptions, command) => {
 			const globals = command.optsWithGlobals() as { config?: string };
 			await runNewCommand(options, globals.config);
