@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { isatty } from "node:tty";
 import { Command } from "commander";
 import { createSpinner } from "nanospinner";
@@ -158,6 +159,11 @@ function waitReadyTimeoutMs(options: NewOptions): number {
 	return Duration.parse(options.timeout).milliseconds;
 }
 
+export function sshKeyName(publicKey: string): string {
+	const hex = createHash("md5").update(publicKey).digest("hex");
+	return `sandctl-${hex.slice(0, 8)}`;
+}
+
 function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
@@ -228,7 +234,7 @@ export async function runNew(
 
 	const publicKey = await dependencies.getPublicKey(config);
 	const sshKeyID = await provider.ensureSSHKey(
-		`sandctl-${sessionID}`,
+		sshKeyName(publicKey),
 		publicKey,
 	);
 
