@@ -9,5 +9,5 @@ export function validateID(id: string): boolean {
 }
 
 export function normalizeName(name: string): string {
-	return name.toLowerCase();
+	return name.trim().toLowerCase();
 }
