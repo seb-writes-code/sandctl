@@ -128,7 +128,7 @@ export function shouldRunLiveSmoke(env: NodeJS.ProcessEnv): boolean {
 export function ensureCompiledBinary(): string {
 	if (!existsSync(COMPILED_BINARY_PATH)) {
 		throw new Error(
-			`compiled sandctl e2e binary not found at ${COMPILED_BINARY_PATH}; run "bun run build" in sandctl-ts before running e2e tests`,
+			`compiled sandctl e2e binary not found at ${COMPILED_BINARY_PATH}; run "bun run build" before running e2e tests`,
 		);
 	}
 

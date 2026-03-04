@@ -1,7 +1,7 @@
 #!/bin/bash
 #
 # Pre-commit hook for sandctl
-# Runs linting and tests on staged TypeScript files in sandctl-ts
+# Runs linting and tests on staged TypeScript files
 #
 
 set -euo pipefail
@@ -38,9 +38,9 @@ check_bun() {
     fi
 }
 
-# Get staged TypeScript files in sandctl-ts (Added, Copied, Modified - not Deleted)
+# Get staged TypeScript files (Added, Copied, Modified - not Deleted)
 get_staged_ts_files() {
-    git diff --cached --name-only --diff-filter=ACM | grep '^sandctl-ts/.*\.ts$' || true
+    git diff --cached --name-only --diff-filter=ACM | grep '\.ts$' || true
 }
 
 # Main execution
@@ -50,30 +50,30 @@ main() {
 
     # Exit early if no TypeScript files are staged
     if [ -z "$STAGED_TS_FILES" ]; then
-        echo "No sandctl-ts TypeScript files staged, skipping checks"
+        echo "No TypeScript files staged, skipping checks"
         exit 0
     fi
 
     # Check for required tools
     check_bun
 
-    echo "Running pre-commit checks on staged sandctl-ts TypeScript files..."
+    echo "Running pre-commit checks on staged TypeScript files..."
 
     # Track if any check fails
     FAILED=0
 
     # Check 1: TypeScript lint
-    print_header "Running linters (sandctl-ts)..."
-    if ! (cd sandctl-ts && bun run lint) 2>&1; then
-        print_error "sandctl-ts lint found issues"
+    print_header "Running linters..."
+    if ! bun run lint 2>&1; then
+        print_error "Lint found issues"
         FAILED=1
     else
         print_success "Linting passed"
     fi
 
     # Check 2: TypeScript tests
-    print_header "Running tests (sandctl-ts)..."
-    if ! (cd sandctl-ts && bun run test) 2>&1; then
+    print_header "Running tests..."
+    if ! bun run test 2>&1; then
         print_error "Tests failed"
         FAILED=1
     else

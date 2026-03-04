@@ -1,12 +1,12 @@
 # TypeScript Core Workflow Parity
 
-This document tracks parity between the Go CLI and the TypeScript CLI in `sandctl-ts`.
+This document tracks parity between the Go CLI and the TypeScript CLI.
 
 ## Current Status
 
 | Area | Status | Notes |
 | --- | --- | --- |
-| Core command set (`init`, `new`, `list`, `exec`, `console`, `destroy`, `version`) | ✅ Parity for core workflow | Implemented in `sandctl-ts/src/commands/` and covered by unit tests plus e2e smoke gating. |
+| Core command set (`init`, `new`, `list`, `exec`, `console`, `destroy`, `version`) | ✅ Parity for core workflow | Implemented in `src/commands/` and covered by unit tests plus e2e smoke gating. |
 | Session lifecycle (`new -> list -> exec -> destroy`) | ✅ Parity for default workflow | Covered by unit tests and opt-in live smoke flow in `tests/e2e/live-smoke.test.ts`. |
 | SSH runtime behavior (agent/file key modes and console assumptions) | ✅ Parity checks in place | Unit coverage includes SSH agent behavior and macOS/runtime parity scenarios. |
 | Local verification pipeline (`lint`, `unit`, `e2e`, `build`) | ✅ Passing | Commands are documented in `README.md` and used as default local checks. |
@@ -38,4 +38,4 @@ These config fields (`opencode_zen_key`, `github_token`) are still accepted by `
 ## Known Gaps
 
 - Full cloud-provider behavior is intentionally opt-in in CI/local verification because live smoke requires external credentials and real Hetzner resources.
-- The e2e version test requires a built `./sandctl` binary in `sandctl-ts`; without a built binary it is skipped by design.
+- The e2e version test requires a built `./sandctl` binary; without a built binary it is skipped by design.

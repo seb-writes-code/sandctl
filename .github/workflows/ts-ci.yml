@@ -5,11 +5,23 @@ on:
     branches:
       - main
     paths:
-      - "sandctl-ts/**"
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "biome.json"
+      - "bunfig.toml"
+      - "scripts/**"
       - ".github/workflows/ts-ci.yml"
   pull_request:
     paths:
-      - "sandctl-ts/**"
+      - "src/**"
+      - "tests/**"
+      - "package.json"
+      - "tsconfig.json"
+      - "biome.json"
+      - "bunfig.toml"
+      - "scripts/**"
       - ".github/workflows/ts-ci.yml"
 
 permissions:
@@ -22,10 +34,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        working-directory: sandctl-ts
         run: bun install
       - name: Lint
-        working-directory: sandctl-ts
         run: bun run lint
 
   test:
@@ -34,10 +44,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        working-directory: sandctl-ts
         run: bun install
       - name: Test
-        working-directory: sandctl-ts
         run: bun test tests/unit/
 
   build:
@@ -46,16 +54,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        working-directory: sandctl-ts
         run: bun install
       - name: Build
-        working-directory: sandctl-ts
         run: bun run build
       - name: Upload binary
         uses: actions/upload-artifact@v4
         with:
           name: sandctl-ts-binary
-          path: sandctl-ts/sandctl
+          path: sandctl
 
   contract-tests:
     runs-on: ubuntu-latest
@@ -64,17 +70,15 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        working-directory: sandctl-ts
         run: bun install
       - name: Download binary
         uses: actions/download-artifact@v4
         with:
           name: sandctl-ts-binary
-          path: sandctl-ts
+          path: .
       - name: Make binary executable
-        run: chmod +x sandctl-ts/sandctl
+        run: chmod +x sandctl
       - name: Run contract tests
-        working-directory: sandctl-ts
         run: bun run test:e2e:contracts:ci
 
   e2e:
@@ -95,15 +99,12 @@ jobs:
       - uses: actions/checkout@v4
       - uses: oven-sh/setup-bun@v2
       - name: Install dependencies
-        working-directory: sandctl-ts
         run: bun install
       - name: Build binary
-        working-directory: sandctl-ts
         run: bun run build
       - name: Generate SSH key
         run: ssh-keygen -t ed25519 -N '' -f /tmp/id_ed25519
       - name: Run live smoke E2E test
-        working-directory: sandctl-ts
         env:
           HETZNER_API_TOKEN: ${{ env.HETZNER_API_TOKEN }}
           SANDCTL_LIVE_SMOKE: "1"

@@ -2,255 +2,87 @@
 
 A CLI tool for managing sandboxed AI web development agents.
 
-sandctl provisions isolated VM environments using [Fly.io Sprites](https://sprites.dev) where AI coding agents (Claude, OpenCode, Codex) can work on development tasks safely.
+sandctl provisions isolated VM environments on Hetzner Cloud where AI coding agents can work on development tasks safely.
 
-## TypeScript Rewrite (Experimental)
+## Prerequisites
 
-This repository currently includes two implementations:
+- Bun 1.x
 
-- Go implementation (stable) at repository root
-- TypeScript/Bun implementation (in development) in `sandctl-ts/`
-
-To build and run the TypeScript implementation locally:
+## Build
 
 ```bash
-cd sandctl-ts
 bun install
 bun run build
-./sandctl --help
 ```
 
-To build the Go implementation:
+## Install
 
 ```bash
-make build
-./build/sandctl --help
-```
-
-## Requirements
-
-- Go 1.22 or later
-- A Sprites API token ([get one here](https://sprites.dev/tokens))
-- An API key for your preferred AI agent
-
-## Installation
-
-### From Source
-
-```bash
-# Clone the repository
-git clone https://github.com/sandctl/sandctl.git
-cd sandctl
-
-# Download dependencies
-make deps
-
-# Build (output: build/sandctl)
-make build
-
-# Install to GOPATH/bin
 make install
-
-# Or install to /usr/local/bin
-make install-local
 ```
 
-### Build for All Platforms
+## Cross-compile
 
 ```bash
 make build-all
 ```
 
-This creates binaries for:
-- `build/sandctl-darwin-arm64` (macOS Apple Silicon)
-- `build/sandctl-darwin-amd64` (macOS Intel)
-- `build/sandctl-linux-amd64` (Linux x86_64)
-- `build/sandctl-linux-arm64` (Linux ARM64)
-
 ## Quick Start
 
-### 1. Initialize Configuration
+```bash
+bun install
+bun run build
+./sandctl --help
+./sandctl version
+```
 
-Run the interactive setup:
+## Verification
+
+### Default local checks
 
 ```bash
-sandctl init
+bun run lint
+bun test tests/unit/
+bun run test:e2e:contracts
+bun run test:e2e
+bun run build
 ```
 
-This will prompt you for:
-- **Sprites API token** - for VM provisioning
-- **Default AI agent** - claude, opencode, or codex
-- **API key** - for your selected agent
+Notes:
+- `test:e2e` runs `build` first, then all files under `tests/e2e/`. Live infrastructure checks in `live-smoke.test.ts` are skipped by default unless `SANDCTL_LIVE_SMOKE=1` is set.
 
-Configuration is saved to `~/.sandctl/config` with secure permissions (0600).
+### Contract tests
 
-### 2. Start a Session
+Contract tests verify compiled-binary behaviour without live infrastructure or secrets. They cover:
+
+- `tests/e2e/config-path-contract.test.ts` — config file path resolution and XDG/home-dir overrides
+- `tests/e2e/init-new-agent-contract.test.ts` — `new`/`init` agent command flag contracts
+- `tests/e2e/legacy-sessions-contract.test.ts` — backwards-compatible session file schema
+
+Run all three together:
 
 ```bash
-sandctl start --prompt "Create a React todo app"
+bun run test:e2e:contracts
 ```
 
-### 3. List Active Sessions
+Contract tests run in CI as the `contract-tests` job (deterministic, no secrets required) after the `build` job succeeds.
+
+### Opt-in live smoke checks
+
+To run the real cloud smoke flow (`new -> list -> exec -> destroy`), provide credentials and opt in:
 
 ```bash
-sandctl list
+SANDCTL_LIVE_SMOKE=1 HETZNER_API_TOKEN=<token> bun test tests/e2e/live-smoke.test.ts
 ```
 
-### 4. Connect to a Session
+### Required PR checks policy
 
-```bash
-sandctl exec <session-id>
-```
+- TypeScript CI is required on pull requests.
+- Live smoke (`tests/e2e/live-smoke.test.ts`) is a required PR check before merge, configured in the target branch protection/ruleset.
+- `HETZNER_API_TOKEN` must be configured as a repository secret; when missing, the `e2e` job fails rather than skipping.
+- Fork PRs are unsupported for this required check because repository secrets are unavailable, so the `e2e` job fails by design.
 
-### 5. Destroy a Session
+## SSH Runtime Parity Notes
 
-```bash
-sandctl destroy <session-id>
-```
-
-## Commands
-
-| Command | Description |
-|---------|-------------|
-| `init` | Initialize or update configuration |
-| `start` | Provision a new sandboxed agent session |
-| `list` | List active sessions |
-| `exec` | Connect to a running session |
-| `destroy` | Terminate and remove a session |
-| `version` | Show version information |
-
-## Configuration
-
-### Interactive Setup
-
-```bash
-sandctl init
-```
-
-### Non-Interactive Setup (CI/Scripts)
-
-```bash
-sandctl init \
-  --sprites-token YOUR_SPRITES_TOKEN \
-  --agent claude \
-  --api-key YOUR_ANTHROPIC_KEY
-```
-
-### Configuration File
-
-Located at `~/.sandctl/config` (YAML format):
-
-```yaml
-sprites_token: "your-sprites-token"
-default_agent: claude
-agent_api_keys:
-  claude: "your-anthropic-key"
-  opencode: "your-opencode-key"
-```
-
-### Reconfiguring
-
-Run `sandctl init` again to update settings. Press Enter to keep existing values, or type new ones to update.
-
-## Usage Examples
-
-### Start with Default Agent
-
-```bash
-sandctl start --prompt "Create a React todo app with TypeScript"
-```
-
-### Start with Specific Agent
-
-```bash
-sandctl start --prompt "Build a REST API in Go" --agent opencode
-```
-
-### Start with Auto-Destroy Timeout
-
-```bash
-sandctl start --prompt "Experiment with new feature" --timeout 2h
-```
-
-### Use a Different Config File
-
-```bash
-sandctl --config /path/to/config start --prompt "My task"
-```
-
-### Verbose Output
-
-```bash
-sandctl -v start --prompt "Debug something"
-```
-
-## Development
-
-### Available Make Targets
-
-```bash
-make help    # Show all available targets
-```
-
-| Target | Description |
-|--------|-------------|
-| `make build` | Build the binary to `build/sandctl` |
-| `make build-all` | Build for all platforms |
-| `make test` | Run tests with race detection and coverage |
-| `make test-unit` | Run unit tests only |
-| `make lint` | Run linters (requires golangci-lint) |
-| `make fmt` | Format code |
-| `make install` | Install to `$GOPATH/bin` |
-| `make install-local` | Install to `/usr/local/bin` |
-| `make clean` | Remove build artifacts |
-| `make deps` | Download and tidy dependencies |
-| `make vuln` | Run vulnerability check |
-
-### Run Tests
-
-```bash
-make test
-```
-
-### Build
-
-```bash
-make build
-```
-
-### Format Code
-
-```bash
-make fmt
-```
-
-### Clean Build Artifacts
-
-```bash
-make clean
-```
-
-## Project Structure
-
-```
-sandctl/
-├── cmd/sandctl/          # CLI entry point
-│   └── main.go
-├── internal/
-│   ├── cli/              # Command implementations
-│   │   ├── root.go       # Root command and global flags
-│   │   ├── init.go       # Init command
-│   │   ├── start.go      # Start command
-│   │   ├── list.go       # List command
-│   │   ├── exec.go       # Exec command
-│   │   └── destroy.go    # Destroy command
-│   ├── config/           # Configuration handling
-│   ├── session/          # Session management
-│   ├── sprites/          # Sprites API client
-│   └── ui/               # User interface helpers
-└── specs/                # Feature specifications
-```
-
-## License
-
-See [LICENSE](LICENSE) for details.
+- SSH agent discovery and console behavior are tested with injected runtime/platform data so parity checks stay OS-independent.
+- Run `bun test tests/unit/ssh/macos-parity.test.ts` to validate macOS path/terminal assumptions without requiring macOS at runtime.
