@@ -2,6 +2,15 @@
 build/
 dist/
 
+# Dependencies
+node_modules/
+
+# TypeScript
+*.tsbuildinfo
+
+# Compiled binary
+sandctl
+
 # IDE and editor files
 .idea/
 .vscode/

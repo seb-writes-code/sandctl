@@ -2,7 +2,7 @@
 
 ## Overview
 
-sandctl is a CLI tool for managing sandboxed VMs on Hetzner Cloud. The implementation is in TypeScript/Bun, located in `sandctl-ts/`.
+sandctl is a CLI tool for managing sandboxed VMs on Hetzner Cloud. The implementation is in TypeScript/Bun.
 
 ## Active Technologies
 
@@ -14,7 +14,6 @@ sandctl is a CLI tool for managing sandboxed VMs on Hetzner Cloud. The implement
 ## Project Structure
 
 ```text
-sandctl-ts/
 ├── src/
 │   ├── commands/       # CLI command implementations
 │   ├── config/         # Config file handling (~/.sandctl/config)
@@ -34,8 +33,6 @@ sandctl-ts/
 ## Commands
 
 ```bash
-cd sandctl-ts
-
 # Install dependencies
 bun install
 
