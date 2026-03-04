@@ -28,6 +28,8 @@ import type { TemplateInitScript, TemplateStoreLike } from "@/template/types";
 
 const DEFAULT_PROVIDER = "hetzner";
 const DEFAULT_WAIT_READY_TIMEOUT_MS = 5 * 60 * 1000;
+const DEFAULT_CLOUD_INIT_TIMEOUT_MS = 10 * 60 * 1000;
+const CLOUD_INIT_POLL_INTERVAL_MS = 5_000;
 
 interface NewOptions {
 	provider?: string;
@@ -71,6 +73,12 @@ interface Dependencies {
 		command: string,
 		script: string,
 	) => Promise<ExecResult>;
+	waitForCloudInit: (
+		config: Config,
+		host: string,
+		createClient: (options: SSHClientOptions) => SSHRuntimeClient,
+		timeoutMs: number,
+	) => Promise<void>;
 	now: () => Date;
 	warn: (message: string) => void;
 }
@@ -86,6 +94,7 @@ const defaultDependencies: Dependencies = {
 	runRemoteTemplate: async (client, command, script) => {
 		return await execWithStreams(client, command, { stdin: script });
 	},
+	waitForCloudInit: defaultWaitForCloudInit,
 	now: () => new Date(),
 	warn: (message: string) => {
 		console.warn(message);
@@ -142,6 +151,50 @@ function waitReadyTimeoutMs(options: NewOptions): number {
 		return DEFAULT_WAIT_READY_TIMEOUT_MS;
 	}
 	return Duration.parse(options.timeout).milliseconds;
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function defaultWaitForCloudInit(
+	config: Config,
+	host: string,
+	createClient: (options: SSHClientOptions) => SSHRuntimeClient,
+	timeoutMs: number,
+): Promise<void> {
+	const sshOptions = { ...buildSSHOptions(config, host), username: "root" };
+	const deadline = Date.now() + timeoutMs;
+
+	while (Date.now() < deadline) {
+		try {
+			const client = createClient(sshOptions);
+			const done = await withSSHClient(client, async (c) => {
+				const channel = await c.exec(
+					"test -f /var/lib/cloud/instance/boot-finished && echo done",
+				);
+				return await new Promise<boolean>((resolve) => {
+					let output = "";
+					channel.on("data", (data: Buffer | string) => {
+						output += data.toString();
+					});
+					channel.on("close", () => {
+						resolve(output.trim() === "done");
+					});
+				});
+			});
+			if (done) {
+				return;
+			}
+		} catch {
+			// SSH not ready yet or command failed; keep polling
+		}
+		await sleep(CLOUD_INIT_POLL_INTERVAL_MS);
+	}
+
+	throw new Error(
+		`cloud-init did not complete within ${Math.round(timeoutMs / 1000)}s`,
+	);
 }
 
 export function sshKeyName(publicKey: string): string {
@@ -236,6 +289,16 @@ export async function runNew(
 		await provider.waitReady(createdVM.id, waitReadyTimeoutMs(options));
 
 		const readyVM = await provider.get(createdVM.id);
+
+		if (readyVM.ipAddress) {
+			await dependencies.waitForCloudInit(
+				config,
+				readyVM.ipAddress,
+				dependencies.createSSHClient,
+				DEFAULT_CLOUD_INIT_TIMEOUT_MS,
+			);
+		}
+
 		if (selectedTemplate && !readyVM.ipAddress) {
 			throw new Error("VM has no IP address for template initialization");
 		}
