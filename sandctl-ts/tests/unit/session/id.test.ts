@@ -23,4 +23,9 @@ describe("session/id", () => {
 	test("normalizeName lowercases input", () => {
 		expect(normalizeName("AlIcE")).toBe("alice");
 	});
+
+	test("normalizeName trims whitespace", () => {
+		expect(normalizeName("  alice  ")).toBe("alice");
+		expect(normalizeName("\talice\n")).toBe("alice");
+	});
 });
