@@ -45,6 +45,7 @@ describe("commands/new --template", () => {
 				generateSessionID: () => "violet",
 				getPublicKey: async () => "ssh-ed25519 AAAA test@local",
 				waitForCloudInit: async () => {},
+				setupGitConfig: async () => {},
 				store: {
 					list: async () => [],
 					add: async () => {},
@@ -107,6 +108,7 @@ describe("commands/new --template", () => {
 				generateSessionID: () => "violet",
 				getPublicKey: async () => "ssh-ed25519 AAAA test@local",
 				waitForCloudInit: async () => {},
+				setupGitConfig: async () => {},
 				store: {
 					list: async () => [],
 					add: async () => {},

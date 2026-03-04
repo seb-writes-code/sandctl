@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { isatty } from "node:tty";
 import { Command } from "commander";
 import { createSpinner } from "nanospinner";
@@ -11,6 +12,7 @@ import {
 	type Config,
 	getProviderConfig,
 	getSSHPublicKey,
+	hasGitConfig,
 	load,
 	type ProviderConfig,
 } from "@/config/config";
@@ -27,6 +29,7 @@ import { openConsole } from "@/ssh/console";
 import { type ExecResult, execWithStreams } from "@/ssh/exec";
 import { TemplateNotFoundError, TemplateStore } from "@/template/store";
 import type { TemplateInitScript, TemplateStoreLike } from "@/template/types";
+import { expandTilde } from "@/utils/paths";
 
 const DEFAULT_PROVIDER = "hetzner";
 const DEFAULT_WAIT_READY_TIMEOUT_MS = 5 * 60 * 1000;
@@ -87,6 +90,11 @@ interface Dependencies {
 		createClient: (options: SSHClientOptions) => SSHRuntimeClient,
 		timeoutMs: number,
 	) => Promise<void>;
+	setupGitConfig: (
+		config: Config,
+		host: string,
+		deps: Pick<Dependencies, "createSSHClient">,
+	) => Promise<void>;
 	now: () => Date;
 	warn: (message: string) => void;
 }
@@ -103,6 +111,7 @@ const defaultDependencies: Dependencies = {
 		return await execWithStreams(client, command, { stdin: script });
 	},
 	waitForCloudInit: defaultWaitForCloudInit,
+	setupGitConfig: setupGitConfigViaSSH,
 	now: () => new Date(),
 	warn: (message: string) => {
 		console.warn(message);
@@ -221,6 +230,51 @@ function shellQuote(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }
 
+async function setupGitConfigViaSSH(
+	config: Config,
+	host: string,
+	deps: Pick<Dependencies, "createSSHClient">,
+): Promise<void> {
+	if (!hasGitConfig(config)) {
+		return;
+	}
+
+	let gitConfigContent: string;
+	if (config.git_config_path) {
+		gitConfigContent = await readFile(
+			expandTilde(config.git_config_path),
+			"utf8",
+		);
+	} else {
+		gitConfigContent = `[user]\n\tname = ${config.git_user_name}\n\temail = ${config.git_user_email}\n`;
+	}
+
+	const encoded = Buffer.from(gitConfigContent).toString("base64");
+
+	const sshOptions = { ...buildSSHOptions(config, host), username: "root" };
+	const client = deps.createSSHClient(sshOptions);
+
+	await withSSHClient(client, async (c) => {
+		const writeChannel = await c.exec(
+			`echo '${encoded}' | base64 -d > /home/agent/.gitconfig`,
+		);
+		await collectChannelOutput(writeChannel);
+
+		const chownChannel = await c.exec(
+			"chown agent:agent /home/agent/.gitconfig && chmod 644 /home/agent/.gitconfig",
+		);
+		await collectChannelOutput(chownChannel);
+	});
+}
+
+async function collectChannelOutput(channel: {
+	on(event: string, listener: (...args: unknown[]) => void): void;
+}): Promise<void> {
+	return new Promise<void>((resolve) => {
+		channel.on("close", () => resolve());
+	});
+}
+
 async function runTemplateScript(
 	config: Config,
 	host: string,
@@ -312,6 +366,18 @@ export async function runNew(
 				dependencies.createSSHClient,
 				DEFAULT_CLOUD_INIT_TIMEOUT_MS,
 			);
+
+			try {
+				await dependencies.setupGitConfig(
+					config,
+					readyVM.ipAddress,
+					dependencies,
+				);
+			} catch (error) {
+				dependencies.warn(
+					`[warn] Git config setup failed: ${messageFromError(error)}`,
+				);
+			}
 		}
 
 		if (selectedTemplate && !readyVM.ipAddress) {
