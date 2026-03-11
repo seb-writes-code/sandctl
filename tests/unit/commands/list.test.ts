@@ -88,7 +88,7 @@ describe("commands/list", () => {
 
 	test("provider sync updates session status", async () => {
 		await store.add(runningSession);
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 			resolveProvider: () =>
 				makeProvider([
@@ -108,7 +108,7 @@ describe("commands/list", () => {
 
 	test("unknown providers are handled without failing", async () => {
 		await store.add({ ...runningSession, provider: "unknown" });
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 		});
 		expect((await store.get("alice")).status).toBe("running");
@@ -117,7 +117,7 @@ describe("commands/list", () => {
 
 	test("missing vm in provider list marks active session as stopped", async () => {
 		await store.add(runningSession);
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 			resolveProvider: () => makeProvider([]),
 		});
@@ -130,7 +130,7 @@ describe("commands/list", () => {
 		provider.list = async () => {
 			throw new Error("sync unavailable");
 		};
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 			resolveProvider: () => provider,
 		});
@@ -145,7 +145,7 @@ describe("commands/list", () => {
 
 	test("provider resolution failures fall back to local session data", async () => {
 		await store.add(runningSession);
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 			resolveProvider: () => {
 				throw new Error("registry unavailable");
@@ -213,7 +213,7 @@ describe("commands/list", () => {
 			]);
 		};
 
-		await runList({ format: "table", all: true }, store, {
+		await runList({ format: "table", all: true, sync: true }, store, {
 			loadConfig: async () => baseProviderConfig,
 			resolveProvider: () => provider,
 		});

@@ -165,7 +165,7 @@ async function syncProviderSessions(
 }
 
 export async function runList(
-	options: { format: string; all: boolean },
+	options: { format: string; all: boolean; sync?: boolean },
 	store = new SessionStore(),
 	deps: Partial<Dependencies> = {},
 	configPath?: string,
@@ -186,7 +186,9 @@ export async function runList(
 		}
 	}
 
-	await syncProviderSessions(sessions, store, dependencies, configPath);
+	if (options.sync) {
+		await syncProviderSessions(sessions, store, dependencies, configPath);
+	}
 
 	if (!options.all) {
 		sessions = sessions.filter(
@@ -226,14 +228,24 @@ export function registerListCommand(): Command {
 			"table",
 		)
 		.option("-a, --all", "Include stopped and failed sessions", false)
-		.action(async (options: { format: string; all: boolean }, command) => {
-			const globals = command.optsWithGlobals() as {
-				config?: string;
-				json?: boolean;
-			};
-			if (globals.json) {
-				options.format = "json";
-			}
-			await runList(options, undefined, undefined, globals.config);
-		});
+		.option(
+			"--sync",
+			"Sync session status with the cloud provider (slower)",
+			false,
+		)
+		.action(
+			async (
+				options: { format: string; all: boolean; sync: boolean },
+				command,
+			) => {
+				const globals = command.optsWithGlobals() as {
+					config?: string;
+					json?: boolean;
+				};
+				if (globals.json) {
+					options.format = "json";
+				}
+				await runList(options, undefined, undefined, globals.config);
+			},
+		);
 }
